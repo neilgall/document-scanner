@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from datetime import datetime
 from enum import Enum
 from PIL import Image
 import argparse
@@ -41,16 +42,25 @@ class JPEGHandler:
 	def __init__(self, destination):
 		self._destination = destination
 
+	def _add_suffix(self, path, suffix):
+		name = path + "" if not suffix else f"_{suffix}"
+		return os.path.join(self._destination, name)
+
+	def _unique_dest(self):
+		base = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+		suffix = 0
+		while os.path.exists(self._add_suffix(base, suffix)):
+			suffix += 1
+		return self._add_suffix(base, suffix)
+
 	def __call__(self, path):
 		print(f"Processing {path}")
 		try:
-			base = os.path.basename(path)
-			dest_jpg = os.path.join(self._destination, base)
-			dest_pdf = os.path.splitext(dest_jpg)[0] + ".pdf"
+			dest = self._unique_dest()
 			pdf = pytesseract.image_to_pdf_or_hocr(Image.open(path), extension='pdf')
-			with open(dest_pdf, 'wb') as f:
+			with open(f"{dest}.pdf", 'wb') as f:
 				f.write(pdf)
-			shutil.move(path, dest_jpg)
+			shutil.move(path, f"{dest}.jpg")
 		except Exception as e:
 			print(e)
 
