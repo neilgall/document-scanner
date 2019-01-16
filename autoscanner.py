@@ -46,10 +46,10 @@ class JPEGHandler:
 		try:
 			base = os.path.basename(path)
 			dest_jpg = os.path.join(self._destination, base)
-			dest_txt = os.path.splitext(dest_jpg)[0] + ".txt"
-			text = pytesseract.image_to_string(Image.open(path))
-			with open(dest_txt, 'wt') as f:
-				f.write(text)
+			dest_pdf = os.path.splitext(dest_jpg)[0] + ".pdf"
+			pdf = pytesseract.image_to_pdf_or_hocr(Image.open(path), extension='pdf')
+			with open(dest_pdf, 'wb') as f:
+				f.write(pdf)
 			shutil.move(path, dest_jpg)
 		except Exception as e:
 			print(e)
