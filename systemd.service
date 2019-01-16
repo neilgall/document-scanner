@@ -1,0 +1,15 @@
+[Unit]
+Description=Document OCR and Index Service
+
+[Service]
+Type=simple
+User=%i
+Group=%i
+WorkingDirectory=/home/%i/Projects/document-scanner
+ExecStart=/home/%i/Projects/document-scanner/.venv/bin/python autoscanner.py /home/%i/Documents/Scans/Inbox /home/%i/Documents/Scans/Indexed
+StandardOutput=syslog
+StandardError=syslog
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
