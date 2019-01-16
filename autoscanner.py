@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 from enum import Enum
+from PIL import Image
+import argparse
 import inotify.adapters
 import os
+import pytesseract
+import shutil
 import sys
 
 class FileState(Enum):
@@ -30,15 +34,31 @@ class FileHandler:
 				self._created_handler(path)
 			if path in self._files:
 				del self._files[path]
+		#print(event,path)
+
+class JPEGHandler:
+	"""Handler for the creation of a new JPEG"""
+	def __init__(self, destination):
+		self._destination = destination
+
+	def __call__(self, path):
+		print(f"Processing {path}")
+		try:
+			base = os.path.basename(path)
+			dest_jpg = os.path.join(self._destination, base)
+			dest_txt = os.path.splitext(dest_jpg)[0] + ".txt"
+			text = pytesseract.image_to_string(Image.open(path))
+			with open(dest_txt, 'wt') as f:
+				f.write(text)
+			shutil.move(path, dest_jpg)
+		except Exception as e:
+			print(e)
+
 
 def is_jpg(path):
 	"""Determine if a file path is a JPEG"""
-	(_, ext) = os.path.splitext(path)
+	ext = os.path.splitext(path)[1]
 	return ext.lower() in [".jpg", ".jpeg"]
-
-def on_create_jpeg(path):
-	"""Handler for the creation of a new JPEG"""
-	print(path)
 
 def watch(folder, handler):
 	"""
@@ -50,5 +70,12 @@ def watch(folder, handler):
 		handler(types, os.path.join(path, filename))
 
 if __name__ == "__main__":
-	folder = os.getcwd() if len(sys.argv) < 2 else sys.argv[1]
-	watch(folder, FileHandler(is_jpg, on_create_jpeg))
+	parser = argparse.ArgumentParser()
+	parser.add_argument("inbox", help="Folder to watch for new images")
+	parser.add_argument("outbox", help="Folder for processed images")
+	args = parser.parse_args()
+
+	print(f"Watching {args.inbox} for files; sending results to {args.outbox}")
+
+	handler = FileHandler(is_jpg, JPEGHandler(args.outbox))
+	watch(args.inbox, handler)
